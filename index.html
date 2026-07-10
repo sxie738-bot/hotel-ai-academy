@@ -111,6 +111,19 @@ input,button{font-family:var(--font)}
 .progress-wrap{margin-bottom:14px}
 .progress-wrap .bar{height:4px;background:var(--border);border-radius:2px;overflow:hidden}
 .progress-wrap .fill{height:100%;background:var(--accent);transition:.4s}
+
+/* Comments */
+.comments{padding:16px}
+.comments h3{font-size:15px;margin-bottom:10px}
+.comment{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:10px 12px;margin-bottom:6px}
+.comment .author{font-size:12px;font-weight:600;margin-bottom:2px}
+.comment .text{font-size:13px;line-height:1.6}
+.comment .time{font-size:10px;color:var(--text2);margin-top:2px}
+.comment-form{display:flex;gap:8px;padding:0 16px 16px;margin-bottom:80px}
+.comment-form input{flex:1;padding:10px 14px;border:1px solid var(--border);border-radius:20px;font-size:13px;outline:none;background:var(--card)}
+.comment-form input:focus{border-color:var(--accent)}
+.comment-form button{padding:10px 18px;border-radius:20px;border:none;background:var(--accent);color:#fff;font-size:13px;cursor:pointer;white-space:nowrap}
+.comment-form button:hover{opacity:.9}
 </style>
 </head>
 <body>
@@ -159,8 +172,8 @@ input,button{font-family:var(--font)}
   <div class="page" id="tab-admin"><h3 style="margin-bottom:10px">📊 管理后台</h3><div class="stats" id="adminStats"></div><div id="adminLogins" style="font-size:12px"></div><h4 style="margin:12px 0 6px">反馈</h4><div id="adminFeedback" style="font-size:12px"></div></div>
 </div>
 
-<!-- PLAYER -->
-<div class="player" id="player"><div class="b" onclick="closePlayer()">← 返回课程</div><div class="vid" id="playerVideo"></div><h2 id="playerTitle"></h2><div class="desc" id="playerDesc"></div><button class="btn btn-p" style="margin:12px 16px;width:calc(100%-32px)" id="playerDoneBtn" onclick="toggleLessonDone()">标记完成</button></div>
+<!-- PLAYER (full-screen) -->
+<div class="player" id="player"><div class="b" onclick="closePlayer()">← 返回课程</div><div class="vid" id="playerVideo"></div><h2 id="playerTitle"></h2><div class="desc" id="playerDesc"></div><button class="btn btn-p" style="margin:12px 16px;width:calc(100%-32px)" id="playerDoneBtn" onclick="toggleLessonDone()">标记完成</button><div class="comments"><h3>💬 留言讨论</h3><div id="commentsList"></div></div><div class="comment-form"><input id="commentInput" placeholder="写下你的问题或心得…" onkeydown="if(event.key==='Enter')addComment()"><button onclick="addComment()">发送</button></div></div>
 
 <!-- NAV -->
 <div class="nav" id="bottomNav">
@@ -267,6 +280,9 @@ function renderCourses(){
 
 function openLesson(id){
   const l=config.lessons.find(x=>x.id===id);if(!l)return;cur=l;
+  // 隐藏主界面，显示播放器
+  document.getElementById('app').style.display='none';
+  document.getElementById('bottomNav').style.display='none';
   document.getElementById('player').style.display='block';
   document.getElementById('playerTitle').textContent=l.title;
   document.getElementById('playerDesc').textContent=l.desc;
@@ -276,10 +292,41 @@ function openLesson(id){
   else{box.innerHTML=`<div class="ph"><div style="font-size:36px">🎬</div><div>视频即将上线</div></div>`}
   const btn=document.getElementById('playerDoneBtn');
   btn.textContent=progress[l.id]===true?'✓ 已完成':'标记完成';
+  renderComments();
   window.scrollTo(0,0);
 }
 
-function closePlayer(){document.getElementById('player').style.display='none';cur=null;renderCourses()}
+function closePlayer(){
+  document.getElementById('player').style.display='none';
+  document.getElementById('app').style.display='block';
+  document.getElementById('bottomNav').style.display='flex';
+  cur=null;renderCourses();
+}
+
+// ── Comments ──
+function getComments(lessonId){
+  try{return JSON.parse(localStorage.getItem('hai_cmts_'+lessonId)||'[]')}catch(e){return[]}
+}
+function saveComments(lessonId,cmts){localStorage.setItem('hai_cmts_'+lessonId,JSON.stringify(cmts))}
+
+function renderComments(){
+  if(!cur)return;
+  const cmts=getComments(cur.id);
+  document.getElementById('commentsList').innerHTML=cmts.length?cmts.map(c=>`<div class="comment"><div class="author">${c.user||'学员'}</div><div class="text">${c.text}</div><div class="time">${c.time}</div></div>`).join(''):'<p style="color:var(--text2);font-size:13px">暂无留言，第一条等你来写 ✍️</p>';
+}
+
+function addComment(){
+  if(!cur)return;
+  const input=document.getElementById('commentInput');
+  const text=input.value.trim();
+  if(!text)return;
+  const cmts=getComments(cur.id);
+  cmts.push({user:user.name||'学员',text,time:new Date().toLocaleString('zh-CN')});
+  saveComments(cur.id,cmts);
+  input.value='';
+  renderComments();
+  toast('留言已发送');
+}
 function toggleLessonDone(){if(!cur)return;progress[cur.id]=progress[cur.id]===true?false:true;localStorage.setItem('hai_p',JSON.stringify(progress));openLesson(cur.id);renderCourses()}
 
 function renderTools(){document.getElementById('toolsList').innerHTML=TOOLS.map(t=>`<div class="tcard"><h3>${t.icon} ${t.name}</h3><p>${t.desc}</p><a href="#">打开工具 →</a></div>`).join('')+'<p style="color:var(--text2);font-size:12px;text-align:center;margin-top:12px">更多工具开发中</p>'}
