@@ -183,14 +183,8 @@ input,button{font-family:var(--font)}
   <div class="nav-item" onclick="switchTab('my')"><span class="icon">👤</span>我</div>
 </div>
 
-<!-- 从 COS 加载写入密钥（不提交 git，避免泄露） -->
-<script>
-// 尝试从 COS 加载同步配置
-var s=document.createElement('script');
-s.src='https://dingyiwan-1313110312.cos.ap-shanghai.myqcloud.com/member/sync-config.js';
-s.onerror=function(){console.log('sync: read-only mode');};
-document.head.appendChild(s);
-</script>
+<!-- 从 COS 加载写入密钥 -->
+<script src="https://dingyiwan-1313110312.cos.ap-shanghai.myqcloud.com/member/sync-config.js"></script>
 <script>
 const INVITE = {
   trial2026:{tier:'29.9',name:'体验学员',max:3},
@@ -331,11 +325,18 @@ async function getComments(lessonId){
 async function saveComments(lessonId,cmts){
   commentsCache['cmt_'+lessonId]={data:cmts,ts:Date.now()};
   const key='data/comments_l'+lessonId+'.json';
-  const url=COS_WRITE_URLS[key];
-  if(!url)return;
+  const url=(typeof COS_WRITE_URLS!=='undefined')?COS_WRITE_URLS[key]:null;
+  if(!url){
+    toast('⚠️ 同步服务未就绪，请稍后再试');
+    return;
+  }
   try{
-    await fetch(url,{method:'PUT',body:JSON.stringify(cmts),headers:{'Content-Type':'application/json'}});
-  }catch(e){console.log('sync err:',e)}
+    const resp=await fetch(url,{method:'PUT',body:JSON.stringify(cmts),headers:{'Content-Type':'application/json; charset=utf-8'}});
+    if(!resp.ok)throw new Error('HTTP '+resp.status);
+  }catch(e){
+    toast('⚠️ 同步失败，请刷新后重试');
+    console.log('sync err:',e);
+  }
 }
 
 async function renderComments(){
