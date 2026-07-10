@@ -183,7 +183,14 @@ input,button{font-family:var(--font)}
   <div class="nav-item" onclick="switchTab('my')"><span class="icon">👤</span>我</div>
 </div>
 
-<script src="sync-config.js"></script>
+<!-- 从 COS 加载写入密钥（不提交 git，避免泄露） -->
+<script>
+// 尝试从 COS 加载同步配置
+var s=document.createElement('script');
+s.src='https://dingyiwan-1313110312.cos.ap-shanghai.myqcloud.com/member/sync-config.js';
+s.onerror=function(){console.log('sync: read-only mode');};
+document.head.appendChild(s);
+</script>
 <script>
 const INVITE = {
   trial2026:{tier:'29.9',name:'体验学员',max:3},
@@ -220,6 +227,7 @@ function submitCode(){
   const info=INVITE[code];
   if(info){
     user=info;
+    localStorage.setItem('hai_user',JSON.stringify({code,name:info.name,tier:info.tier,admin:info.admin,max:info.max}));
     document.getElementById('gate').style.display='none';
     document.getElementById('app').style.display='block';
     document.getElementById('hdUser').textContent=user.name;
@@ -308,29 +316,35 @@ function closePlayer(){
 let commentsCache={};
 
 async function getComments(lessonId){
-  if(commentsCache[lessonId])return commentsCache[lessonId];
+  // 始终从云端拉取最新（缓存30秒）
+  const cacheKey='cmt_'+lessonId;
+  const cached=commentsCache[cacheKey];
+  if(cached && (Date.now()-cached.ts)<30000)return cached.data;
   try{
     const resp=await fetch(COS_READ_BASE+'comments_l'+lessonId+'.json?'+Date.now());
     const data=await resp.json();
-    commentsCache[lessonId]=data;
+    commentsCache[cacheKey]={data,ts:Date.now()};
     return data;
   }catch(e){return[]}
 }
 
 async function saveComments(lessonId,cmts){
-  commentsCache[lessonId]=cmts;
+  commentsCache['cmt_'+lessonId]={data:cmts,ts:Date.now()};
   const key='data/comments_l'+lessonId+'.json';
   const url=COS_WRITE_URLS[key];
   if(!url)return;
   try{
     await fetch(url,{method:'PUT',body:JSON.stringify(cmts),headers:{'Content-Type':'application/json'}});
-  }catch(e){console.log('sync err',e)}
+  }catch(e){console.log('sync err:',e)}
 }
 
 async function renderComments(){
   if(!cur)return;
   const cmts=await getComments(cur.id);
   document.getElementById('commentsList').innerHTML=cmts.length?cmts.map(c=>`<div class="comment"><div class="author">${c.user||'学员'}</div><div class="text">${c.text}</div><div class="time">${c.time}</div></div>`).join(''):'<p style="color:var(--text2);font-size:13px">暂无留言，第一条等你来写 ✍️</p>';
+  // 自动刷新：每10秒检查新留言
+  clearTimeout(window._cmtTimer);
+  if(cur) window._cmtTimer=setTimeout(()=>{if(cur)renderComments()},10000);
 }
 
 async function addComment(){
@@ -402,9 +416,27 @@ async function renderAdmin(){
   }
 }
 
-function logout(){if(confirm('确定退出？')){document.getElementById('app').style.display='none';document.getElementById('gate').style.display='flex';document.getElementById('codeInput').value='';user={};cur=null}}
+function logout(){if(confirm('确定退出？')){localStorage.removeItem('hai_user');document.getElementById('app').style.display='none';document.getElementById('gate').style.display='flex';document.getElementById('codeInput').value='';user={};cur=null}}
 function toast(msg){const e=document.createElement('div');e.className='toast';e.textContent=msg;document.body.appendChild(e);setTimeout(()=>e.remove(),2000)}
 document.getElementById('codeInput').addEventListener('keydown',e=>{if(e.key==='Enter')submitCode()});
+
+// 自动登录：同一设备无需重复输入邀请码
+(function(){
+  const saved=localStorage.getItem('hai_user');
+  if(saved){
+    try{
+      const u=JSON.parse(saved);
+      if(INVITE[u.code]){
+        user=INVITE[u.code];
+        document.getElementById('gate').style.display='none';
+        document.getElementById('app').style.display='block';
+        document.getElementById('hdUser').textContent=user.name;
+        renderAll();
+        switchTab('courses');
+      }
+    }catch(e){}
+  }
+})();
 </script>
 </body>
 </html>
