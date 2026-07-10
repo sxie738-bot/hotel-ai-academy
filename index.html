@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
+<title>酒店AI实战营</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<style>
+:root {
+  --bg: #f5f6fa; --card: #fff; --card2: #f0f2f8;
+  --text: #1a1f36; --text2: #6b7394; --accent: #3b5ccc;
+  --gold: #4f6ef6; --border: #e2e6f0; --radius: 12px;
+  --danger: #e0556a; --success: #22b07d;
+  --font: "PingFang SC","Microsoft YaHei",sans-serif;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family:var(--font); background:var(--bg); color:var(--text); min-height:100dvh; }
+input,button,textarea { font-family:var(--font); }
+
+/* ── Gate ── */
+.gate {
+  min-height:100dvh; display:flex; flex-direction:column;
+  align-items:center; justify-content:center; padding:30px 20px;
+  background:linear-gradient(180deg, #eef1fb 0%, #f5f6fa 100%);
+}
+.gate .logo { font-size:52px; margin-bottom:12px; }
+.gate h1 { font-size:24px; font-weight:700; text-align:center; }
+.gate .sub { color:var(--text2); font-size:13px; margin:6px 0 28px; }
+.gate .code-input {
+  width:100%; max-width:300px; padding:14px 20px;
+  border:2px solid var(--border); border-radius:30px;
+  font-size:17px; text-align:center; background:var(--card);
+  outline:none; transition:border .2s;
+}
+.gate .code-input:focus { border-color:var(--accent); }
+.gate .btn {
+  width:100%; max-width:300px; padding:14px; margin-top:12px;
+  border-radius:30px; border:none; font-size:16px; font-weight:600;
+  cursor:pointer; transition:all .15s;
+}
+.btn-primary { background:var(--accent); color:#fff; }
+.btn-primary:hover { opacity:.9; }
+.btn-outline { background:var(--card); color:var(--accent); border:2px solid var(--accent); }
+.btn-outline:hover { background:var(--accent); color:#fff; }
+.gate .err { color:var(--danger); font-size:13px; margin-top:8px; height:20px; }
+.gate .hint { color:var(--text2); font-size:12px; margin-top:20px; text-align:center; max-width:300px; }
+
+/* ── Purchase Page ── */
+.purchase { display:none; min-height:100dvh; background:var(--bg); padding:20px; }
+.purchase .back { color:var(--accent); font-size:14px; cursor:pointer; margin-bottom:16px; display:inline-block; }
+.purchase h2 { font-size:20px; text-align:center; margin-bottom:20px; }
+.price-cards { display:flex; flex-direction:column; gap:12px; max-width:400px; margin:0 auto; }
+.price-card {
+  background:var(--card); border:2px solid var(--border); border-radius:var(--radius);
+  padding:20px; text-align:center; transition:all .2s;
+}
+.price-card.featured { border-color:var(--accent); background:#f8faff; }
+.price-card .tier { font-size:12px; color:var(--accent); font-weight:700; text-transform:uppercase; margin-bottom:4px; }
+.price-card .price { font-size:30px; font-weight:700; margin:8px 0; }
+.price-card .price span { font-size:14px; color:var(--text2); font-weight:400; }
+.price-card .desc { font-size:12px; color:var(--text2); margin-bottom:12px; line-height:1.5; }
+.price-card .buy-btn {
+  width:100%; padding:10px; border-radius:20px; border:none;
+  background:var(--accent); color:#fff; font-size:14px; font-weight:600;
+  cursor:pointer;
+}
+
+/* ── Main App ── */
+.app { display:none; min-height:100dvh; padding-bottom:70px; }
+.header {
+  background:var(--card); padding:16px 20px; position:sticky; top:0; z-index:10;
+  border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between;
+}
+.header h1 { font-size:17px; }
+.header .user { font-size:13px; color:var(--text2); cursor:pointer; }
+.page { display:none; padding:16px; }
+.page.active { display:block; }
+
+/* ── Bottom Nav ── */
+.nav {
+  position:fixed; bottom:0; left:0; right:0; background:var(--card);
+  border-top:1px solid var(--border); display:flex; z-index:10;
+  padding-bottom:env(safe-area-inset-bottom);
+}
+.nav-item {
+  flex:1; text-align:center; padding:10px 0 6px; cursor:pointer;
+  color:var(--text2); font-size:10px; transition:color .15s;
+}
+.nav-item.active { color:var(--accent); }
+.nav-item .icon { font-size:20px; display:block; margin-bottom:2px; }
+
+/* ── Course List ── */
+.section { margin-bottom:20px; }
+.section-title { font-size:13px; font-weight:700; color:var(--accent); padding:8px 0; border-bottom:1px solid var(--border); margin-bottom:8px; }
+.lesson {
+  display:flex; align-items:center; gap:10px; padding:12px;
+  background:var(--card); border:1px solid var(--border); border-radius:var(--radius);
+  margin-bottom:6px; cursor:pointer;
+}
+.lesson.done { opacity:.5; }
+.lesson .num {
+  width:32px; height:32px; min-width:32px; border-radius:50%;
+  display:flex; align-items:center; justify-content:center; font-size:12px;
+  font-weight:700; background:var(--card2); color:var(--text2);
+}
+.lesson.done .num { background:var(--success); color:#fff; }
+.lesson .info { flex:1; min-width:0; }
+.lesson .info h4 { font-size:14px; font-weight:500; }
+.lesson .info p { font-size:11px; color:var(--text2); margin-top:2px; }
+.lesson .dur { font-size:11px; color:var(--text2); white-space:nowrap; }
+
+/* ── Player ── */
+.player { display:none; padding:0 0 80px; }
+.player .back-btn { color:var(--accent); font-size:14px; cursor:pointer; padding:12px 16px; display:block; }
+.player .video-box { position:relative; padding-bottom:56.25%; background:#000; margin:0 0 16px; }
+.player .video-box iframe, .player .video-box video { position:absolute; top:0; left:0; width:100%; height:100%; border:none; }
+.player .video-box .placeholder { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; color:var(--text2); }
+.player h2 { padding:0 16px; font-size:18px; }
+.player .desc { padding:8px 16px; color:var(--text2); font-size:13px; }
+
+/* ── Tools Page ── */
+.tool-card {
+  background:var(--card); border:1px solid var(--border); border-radius:var(--radius);
+  padding:16px; margin-bottom:10px;
+}
+.tool-card h3 { font-size:15px; margin-bottom:4px; }
+.tool-card p { font-size:12px; color:var(--text2); margin-bottom:10px; }
+.tool-card .tool-link {
+  display:inline-block; padding:8px 16px; background:var(--accent); color:#fff;
+  border-radius:20px; text-decoration:none; font-size:13px;
+}
+
+/* ── Articles Page ── */
+.article-card {
+  background:var(--card); border:1px solid var(--border); border-radius:var(--radius);
+  padding:14px; margin-bottom:10px; cursor:pointer;
+}
+.article-card h3 { font-size:14px; margin-bottom:4px; }
+.article-card .date { font-size:11px; color:var(--text2); }
+
+/* ── Store Page ── */
+.store-item {
+  background:var(--card); border:1px solid var(--border); border-radius:var(--radius);
+  padding:16px; margin-bottom:10px; display:flex; gap:12px; align-items:center;
+}
+.store-item .icon { font-size:36px; }
+.store-item .info { flex:1; }
+.store-item .info h3 { font-size:15px; }
+.store-item .info p { font-size:12px; color:var(--text2); }
+.store-item .price { font-size:18px; font-weight:700; color:var(--accent); }
+
+/* ── My Page ── */
+.my-section { margin-bottom:16px; }
+.my-section h3 { font-size:14px; font-weight:600; margin-bottom:8px; }
+.my-item {
+  background:var(--card); border:1px solid var(--border); border-radius:var(--radius);
+  padding:14px; margin-bottom:6px; cursor:pointer; display:flex; justify-content:space-between; align-items:center;
+}
+.my-item:hover { border-color:var(--accent); }
+.my-item .arrow { color:var(--text2); }
+
+/* ── Admin ── */
+.admin-stats { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:16px; }
+.stat-card {
+  background:var(--card); border:1px solid var(--border); border-radius:var(--radius);
+  padding:16px; text-align:center;
+}
+.stat-card .num { font-size:28px; font-weight:700; color:var(--accent); }
+.stat-card .label { font-size:11px; color:var(--text2); margin-top:2px; }
+
+/* ── Toast ── */
+.toast {
+  position:fixed; bottom:90px; left:50%; transform:translateX(-50%);
+  background:#1a1f36; color:#fff; padding:10px 24px; border-radius:20px;
+  font-size:13px; z-index:99; animation:toastIn .3s;
+}
+@keyframes toastIn { from {opacity:0; transform:translateX(-50%) translateY(10px);} }
+</style>
+</head>
+<body>
+
+<!-- ═══ GATE ═══ -->
+<div class="gate" id="gate">
+  <div class="logo">🏨</div>
+  <h1>酒店AI实战营</h1>
+  <div class="sub">谢瑷瞳 · 订一晚教育科技</div>
+  <input type="text" class="code-input" id="codeInput" placeholder="请输入邀请码" autofocus>
+  <div class="err" id="gateErr"></div>
+  <button class="btn btn-primary" onclick="submitCode()">进入学习</button>
+  <button class="btn btn-outline" onclick="showPurchase()">没有邀请码？了解课程 →</button>
+  <div class="hint">已购课学员请使用老师发送的邀请码登录</div>
+</div>
+
+<!-- ═══ PURCHASE ═══ -->
+<div class="purchase" id="purchase">
+  <a class="back" onclick="hidePurchase()">← 返回登录</a>
+  <h2>选择适合你的课程</h2>
+  <div class="price-cards">
+    <div class="price-card">
+      <div class="tier">入门体验</div>
+      <div class="price">¥29<span>.9</span></div>
+      <div class="desc">3节核心课程 · AI工具全景 · 携程旅拍基础 · 配套资料</div>
+      <button class="buy-btn" onclick="goPay('29.9')">立即购买</button>
+    </div>
+    <div class="price-card featured">
+      <div class="tier">🔥 推荐 · 完整课程</div>
+      <div class="price">¥299</div>
+      <div class="desc">全部22节课 · 五大模块 · 永久回看 · 学员社群 · 工具模板</div>
+      <button class="buy-btn" onclick="goPay('299')">立即购买</button>
+    </div>
+    <div class="price-card">
+      <div class="tier">线下实训</div>
+      <div class="price">¥697</div>
+      <div class="desc">两天一晚线下课 · 面对面实操 · 真实案例 · 当场出方案</div>
+      <button class="buy-btn" onclick="goPay('697')">立即购买</button>
+    </div>
+    <div class="price-card">
+      <div class="tier">一对一指导</div>
+      <div class="price">¥2,097</div>
+      <div class="desc">专属诊断+方案+陪跑 · 30天1v1 · 不限次答疑 · 全套SOP</div>
+      <button class="buy-btn" onclick="goPay('2097')">立即购买</button>
+    </div>
+  </div>
+  <p style="text-align:center;color:var(--text2);font-size:12px;margin-top:20px">付款后请添加老师微信获取邀请码</p>
+</div>
+
+<!-- ═══ MAIN APP ═══ -->
+<div class="app" id="app">
+  <div class="header">
+    <h1 id="headerTitle">酒店AI实战营</h1>
+    <span class="user" id="headerUser" onclick="switchPage('my')"></span>
+  </div>
+
+  <!-- Courses -->
+  <div class="page active" id="page-courses">
+    <div class="progress-wrap" style="margin-bottom:16px">
+      <div style="height:5px;background:var(--border);border-radius:3px;overflow:hidden">
+        <div id="bar" style="height:100%;background:var(--accent);width:0%;transition:.4s"></div>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--text2);margin-top:6px">
+        <span id="statDone"></span><span id="statContinue"></span>
+      </div>
+    </div>
+    <div id="sections"></div>
+  </div>
+
+  <!-- Tools -->
+  <div class="page" id="page-tools">
+    <h3 style="margin-bottom:12px">🔧 酒店管理工具</h3>
+    <div id="toolsList"></div>
+  </div>
+
+  <!-- Articles -->
+  <div class="page" id="page-articles">
+    <h3 style="margin-bottom:12px">📰 公众号文章</h3>
+    <div id="articlesList"></div>
+  </div>
+
+  <!-- Store -->
+  <div class="page" id="page-store">
+    <h3 style="margin-bottom:12px">🛒 工具商城</h3>
+    <div id="storeList"></div>
+  </div>
+
+  <!-- My -->
+  <div class="page" id="page-my">
+    <div class="my-section">
+      <h3>📊 学习数据</h3>
+      <div class="my-item"><span>学习进度</span><span class="arrow" id="myProgress"></span></div>
+      <div class="my-item"><span>学习报告</span><span class="arrow" onclick="showReport()">📋 查看 →</span></div>
+    </div>
+    <div class="my-section">
+      <h3>💬 互动</h3>
+      <div class="my-item" onclick="showFeedback()"><span>课程反馈</span><span class="arrow">→</span></div>
+      <div class="my-item" onclick="showRequest()"><span>我想学的课程</span><span class="arrow">→</span></div>
+    </div>
+    <div class="my-section">
+      <h3>⚙️</h3>
+      <div class="my-item"><span>我的邀请码</span><span class="arrow" id="myCode"></span></div>
+      <div class="my-item" onclick="logout()"><span style="color:var(--danger)">退出登录</span><span class="arrow"></span></div>
+    </div>
+  </div>
+
+  <!-- Admin (hidden, shown for admin) -->
+  <div class="page" id="page-admin" style="display:none">
+    <h3 style="margin-bottom:12px">📊 管理后台</h3>
+    <div class="admin-stats" id="adminStats"></div>
+    <h4 style="margin:12px 0 8px">学员登录记录</h4>
+    <div id="adminLogins" style="font-size:13px"></div>
+    <h4 style="margin:12px 0 8px">学员反馈</h4>
+    <div id="adminFeedback" style="font-size:13px"></div>
+  </div>
+
+  <!-- Nav -->
+  <div class="nav">
+    <div class="nav-item active" onclick="switchPage('courses')" id="nav-courses"><span class="icon">📚</span>课程</div>
+    <div class="nav-item" onclick="switchPage('tools')" id="nav-tools"><span class="icon">🔧</span>工具</div>
+    <div class="nav-item" onclick="switchPage('articles')" id="nav-articles"><span class="icon">📰</span>文章</div>
+    <div class="nav-item" onclick="switchPage('store')" id="nav-store"><span class="icon">🛒</span>商城</div>
+    <div class="nav-item" onclick="switchPage('my')" id="nav-my"><span class="icon">👤</span>我的</div>
+  </div>
+</div>
+
+<!-- ═══ PLAYER ═══ -->
+<div class="player" id="player"><div class="back-btn" onclick="closePlayer()">← 返回课程</div><div class="video-box" id="playerVideo"></div><h2 id="playerTitle"></h2><div class="desc" id="playerDesc"></div><button class="btn btn-primary" style="margin:16px;width:calc(100%-32px)" id="playerDoneBtn" onclick="toggleLessonDone()">标记完成</button></div>
+
+<script>
+// ═══ CONFIG ═══
+const MERCHANT_ID = '1707030311';
+const INVITE_CODES = {
+  'trial2026': { tier: '29.9', name: '体验学员', maxLesson: 3 },
+  'hotelai2026': { tier: '299', name: '正式学员', maxLesson: 99 },
+  'vip2026': { tier: '697', name: '线下学员', maxLesson: 99 },
+  'coach2026': { tier: '2097', name: '一对一学员', maxLesson: 99 },
+  'admin2026': { tier: 'admin', name: '管理员', maxLesson: 99, admin: true },
+};
+const TOOLS_CONFIG = [
+  { name:'携程旅拍优质率检测', desc:'输入酒店信息，检测能否上优质标签', icon:'📊', url:'#' },
+  { name:'酒店AI提示词库', desc:'OTA文案、客服话术、营销文案——500+提示词', icon:'📝', url:'#' },
+  { name:'豆包推荐关键词生成器', desc:'按城市自动生成携程旅拍关键词', icon:'🔑', url:'#' },
+  { name:'酒店OTA评分分析', desc:'一键分析差评原因和改进方向', icon:'📈', url:'#' },
+];
+const STORE_ITEMS = [
+  { name:'酒店AI工具配置包', desc:'一键部署全套酒店AI工具，含前台、客服、营销', price:'¥299', icon:'🛠' },
+  { name:'携程旅拍内容托管', desc:'每月10篇优质旅拍代写+发布+数据跟踪', price:'¥999/月', icon:'✍️' },
+  { name:'酒店私域运营工具包', desc:'企微AI客服+自动标签+跟进提醒全套配置', price:'¥499', icon:'💬' },
+];
+
+let config = null, progress = {}, sections = [], currentLesson = null, userTier = '', userName = '', isAdmin = false, currentPage = 'courses';
+
+// ═══ INIT ═══
+try { progress = JSON.parse(localStorage.getItem('hai_progress')||'{}'); } catch(e) {}
+fetch('config.json?'+Date.now()).then(r=>r.json()).then(c=>{
+  config = c;
+  const m = new Map();
+  c.lessons.forEach(l => {
+    let sec = l.section || '课程';
+    if (!m.has(sec)) m.set(sec, []);
+    m.get(sec).push(l);
+  });
+  sections = Array.from(m, ([n,ls]) => ({name:n, lessons:ls}));
+});
+
+// ═══ AUTH ═══
+function submitCode() {
+  const code = document.getElementById('codeInput').value.trim();
+  if (!code) return;
+  const info = INVITE_CODES[code];
+  if (info) {
+    userTier = info.tier;
+    userName = info.name;
+    isAdmin = !!info.admin;
+    document.getElementById('gate').style.display = 'none';
+    document.getElementById('app').style.display = 'block';
+    document.getElementById('headerUser').textContent = userName;
+    document.getElementById('myCode').textContent = code;
+
+    // Track login
+    trackLogin(code, info);
+
+    renderAll();
+    switchPage('courses');
+  } else {
+    document.getElementById('gateErr').textContent = '邀请码无效，请重试或联系老师获取';
+    setTimeout(()=>document.getElementById('gateErr').textContent='',3000);
+  }
+}
+
+function trackLogin(code, info) {
+  const log = JSON.parse(localStorage.getItem('hai_logins')||'[]');
+  log.push({ code, tier: info.tier, name: info.name, time: new Date().toISOString() });
+  if (log.length > 500) log.splice(0, log.length-500);
+  localStorage.setItem('hai_logins', JSON.stringify(log));
+  // Update daily counter
+  const today = new Date().toISOString().slice(0,10);
+  const dau = JSON.parse(localStorage.getItem('hai_dau')||'{}');
+  dau[today] = (dau[today]||0) + 1;
+  localStorage.setItem('hai_dau', JSON.stringify(dau));
+}
+
+function logout() {
+  if (confirm('确定退出？')) {
+    document.getElementById('app').style.display = 'none';
+    document.getElementById('gate').style.display = 'flex';
+    document.getElementById('codeInput').value = '';
+    userTier = ''; userName = ''; isAdmin = false;
+    currentLesson = null;
+  }
+}
+
+// ═══ PURCHASE ═══
+function showPurchase() { document.getElementById('gate').style.display='none'; document.getElementById('purchase').style.display='block'; }
+function hidePurchase() { document.getElementById('purchase').style.display='none'; document.getElementById('gate').style.display='flex'; }
+function goPay(tier) {
+  // 生成微信支付链接 (商户号: 1707030311)
+  // 当前版本：跳转到微信支付二维码页面
+  const amounts = { '29.9': 2990, '299': 29900, '697': 69700, '2097': 209700 };
+  const amount = amounts[tier] || 0;
+  // 使用微信支付 H5 支付链接格式
+  const payUrl = `https://wx.tenpay.com/f2f?mch_id=${MERCHANT_ID}&total_fee=${amount}&body=酒店AI实战营-${tier}元课程`;
+  window.open(payUrl, '_blank');
+  toast('支付完成后请联系老师获取邀请码');
+}
+
+// ═══ NAVIGATION ═══
+function switchPage(page) {
+  currentPage = page;
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  const pg = document.getElementById('page-'+page);
+  if (pg) pg.classList.add('active');
+  const nv = document.getElementById('nav-'+page);
+  if (nv) nv.classList.add('active');
+  if (page === 'courses') renderCourses();
+  if (page === 'tools') renderTools();
+  if (page === 'articles') renderArticles();
+  if (page === 'store') renderStore();
+  if (page === 'my') renderMy();
+  if (page === 'admin' && isAdmin) renderAdmin();
+  document.getElementById('player').style.display = 'none';
+}
+
+// ═══ COURSES ═══
+function renderAll() {
+  renderCourses();
+  renderTools();
+  renderArticles();
+  renderStore();
+  renderMy();
+  if (isAdmin) renderAdmin();
+}
+
+function renderCourses() {
+  if (!config) return;
+  const done = Object.values(progress).filter(v=>v===true).length;
+  const total = Math.min(config.lessons.length, userTier==='29.9'?3:99);
+  const pct = Math.round(done/total*100);
+  document.getElementById('bar').style.width = pct+'%';
+  document.getElementById('statDone').textContent = `已完成 ${done}/${total}`;
+  const next = config.lessons.find(l=>!progress[l.id] && l.id<=total);
+  document.getElementById('statContinue').textContent = next ? `下一课：${next.title}` : (done>=total ? '🎉 全部完成！' : '');
+
+  document.getElementById('sections').innerHTML = sections.map(sec => {
+    const visible = sec.lessons.filter(l => l.id <= total);
+    if (!visible.length) return '';
+    const doneInSec = visible.filter(l=>progress[l.id]===true).length;
+    return `<div class="section">
+      <div class="section-title">${sec.name} <span style="font-weight:400;color:var(--text2);font-size:11px">${doneInSec}/${visible.length}</span></div>
+      ${visible.map(l => {
+        const isDone = progress[l.id] === true;
+        return `<div class="lesson${isDone?' done':''}" onclick="openLesson(${l.id})">
+          <div class="num">${isDone?'✓':l.id}</div>
+          <div class="info"><h4>${l.title}</h4><p>${l.desc}</p></div>
+          <div class="dur">${l.duration}</div>
+        </div>`;
+      }).join('')}
+    </div>`;
+  }).join('');
+}
+
+function openLesson(id) {
+  const l = config.lessons.find(x=>x.id===id);
+  if (!l) return;
+  currentLesson = l;
+  document.getElementById('player').style.display = 'block';
+  document.getElementById('playerTitle').textContent = l.title;
+  document.getElementById('playerDesc').textContent = l.desc;
+  const box = document.getElementById('playerVideo');
+  if (l.videoUrl) {
+    box.innerHTML = `<video controls playsinline style="width:100%;height:100%" src="${l.videoUrl}"></video>`;
+  } else if (l.videoId) {
+    box.innerHTML = `<iframe src="https://player.bilibili.com/player.html?bvid=${l.videoId}" allowfullscreen></iframe>`;
+  } else {
+    box.innerHTML = `<div class="placeholder"><div style="font-size:40px">🎬</div><div>视频即将上线</div></div>`;
+  }
+  const btn = document.getElementById('playerDoneBtn');
+  btn.textContent = progress[l.id]===true ? '✓ 已完成' : '标记完成';
+  window.scrollTo(0,0);
+}
+
+function closePlayer() { document.getElementById('player').style.display='none'; currentLesson=null; renderCourses(); }
+function toggleLessonDone() {
+  if (!currentLesson) return;
+  progress[currentLesson.id] = progress[currentLesson.id]===true ? false : true;
+  localStorage.setItem('hai_progress', JSON.stringify(progress));
+  openLesson(currentLesson.id);
+  renderCourses();
+  toast(progress[currentLesson.id] ? '✅ 已标记完成！' : '已取消');
+}
+
+// ═══ TOOLS ═══
+function renderTools() {
+  document.getElementById('toolsList').innerHTML = TOOLS_CONFIG.map(t => `
+    <div class="tool-card"><h3>${t.icon} ${t.name}</h3><p>${t.desc}</p><a class="tool-link" href="${t.url}" target="_blank">打开工具 →</a></div>
+  `).join('') + '<p style="color:var(--text2);font-size:12px;text-align:center;margin-top:16px">更多工具开发中，敬请期待</p>';
+}
+
+// ═══ ARTICLES ═══
+function renderArticles() {
+  const articles = [
+    { title: '不会PS、不会文案，能做图文吗？', date: '2026-07-11', url: '#' },
+    { title: '酒店人用AI最容易踩的5个坑', date: '2026-07-08', url: '#' },
+    { title: '豆包推荐酒店的秘密：GEO优化全解析', date: '2026-07-05', url: '#' },
+    { title: '携程旅拍优质标签怎么拿？5个硬指标', date: '2026-07-02', url: '#' },
+    { title: '酒店前台AI化：一个人管1000个客户', date: '2026-06-28', url: '#' },
+  ];
+  document.getElementById('articlesList').innerHTML = articles.map(a => `
+    <div class="article-card" onclick="window.open('${a.url}','_blank')">
+      <h3>${a.title}</h3><div class="date">${a.date}</div>
+    </div>
+  `).join('') + '<p style="color:var(--text2);font-size:12px;text-align:center;margin-top:12px">关注公众号「订一晚的运营日记」阅读全文</p>';
+}
+
+// ═══ STORE ═══
+function renderStore() {
+  document.getElementById('storeList').innerHTML = STORE_ITEMS.map(item => `
+    <div class="store-item">
+      <div class="icon">${item.icon}</div>
+      <div class="info"><h3>${item.name}</h3><p>${item.desc}</p></div>
+      <div class="price">${item.price}</div>
+    </div>
+  `).join('') + `<button class="btn btn-primary" style="width:100%;margin-top:8px" onclick="goPay('store')">购买咨询 →</button>`;
+}
+
+// ═══ MY ═══
+function renderMy() {
+  const done = Object.values(progress).filter(v=>v===true).length;
+  const total = Math.min(config ? config.lessons.length : 22, userTier==='29.9'?3:99);
+  document.getElementById('myProgress').textContent = `${done}/${total} (${Math.round(done/total*100)}%)`;
+}
+
+function showReport() {
+  const done = Object.values(progress).filter(v=>v===true).length;
+  const total = Math.min(config ? config.lessons.length : 22, userTier==='29.9'?3:99);
+  let r = `📊 酒店AI实战营 · 学习报告\n学员: ${userName}\n进度: ${done}/${total}\n\n已完成:\n`;
+  if (config) config.lessons.filter(l=>progress[l.id]).forEach(l=>r+=`✅ ${l.title}\n`);
+  r += `\n--- 谢瑷瞳工作室 ---`;
+  navigator.clipboard?.writeText(r).then(()=>toast('报告已复制！发给老师即可'));
+}
+
+function showFeedback() {
+  const msg = prompt('请输入你的课程反馈或建议：');
+  if (msg) {
+    const fb = JSON.parse(localStorage.getItem('hai_feedback')||'[]');
+    fb.push({ user: userName, msg, time: new Date().toISOString() });
+    localStorage.setItem('hai_feedback', JSON.stringify(fb));
+    toast('感谢反馈！老师会认真查看');
+  }
+}
+
+function showRequest() {
+  const msg = prompt('你想学习什么课程？告诉我们：');
+  if (msg) {
+    const req = JSON.parse(localStorage.getItem('hai_requests')||'[]');
+    req.push({ user: userName, msg, time: new Date().toISOString() });
+    localStorage.setItem('hai_requests', JSON.stringify(req));
+    toast('已提交！我们会根据需求更新课程');
+  }
+}
+
+// ═══ ADMIN ═══
+function renderAdmin() {
+  if (!isAdmin) return;
+  const logins = JSON.parse(localStorage.getItem('hai_logins')||'[]');
+  const dau = JSON.parse(localStorage.getItem('hai_dau')||'{}');
+  const today = new Date().toISOString().slice(0,10);
+  const dauToday = dau[today] || 0;
+  const uniqueUsers = new Set(logins.map(l=>l.code)).size;
+
+  document.getElementById('adminStats').innerHTML = `
+    <div class="stat-card"><div class="num">${logins.length}</div><div class="label">总登录次数</div></div>
+    <div class="stat-card"><div class="num">${uniqueUsers}</div><div class="label">独立学员</div></div>
+    <div class="stat-card"><div class="num">${dauToday}</div><div class="label">今日活跃</div></div>
+    <div class="stat-card"><div class="num">${Object.values(progress).filter(v=>v===true).length}</div><div class="label">本机完成课时</div></div>
+  `;
+
+  document.getElementById('adminLogins').innerHTML = '<table style="width:100%;font-size:12px;border-collapse:collapse">' +
+    logins.slice(-20).reverse().map(l => `<tr style="border-bottom:1px solid var(--border)"><td style="padding:6px">${l.name}</td><td>${l.tier}</td><td style="color:var(--text2)">${new Date(l.time).toLocaleString('zh-CN')}</td></tr>`).join('') + '</table>';
+
+  const fb = JSON.parse(localStorage.getItem('hai_feedback')||'[]');
+  document.getElementById('adminFeedback').innerHTML = fb.slice(-10).reverse().map(f =>
+    `<div style="background:var(--card);border:1px solid var(--border);border-radius:8px;padding:10px;margin-bottom:6px;font-size:13px"><strong>${f.user}</strong> <span style="color:var(--text2);font-size:11px">${new Date(f.time).toLocaleString('zh-CN')}</span><br>${f.msg}</div>`
+  ).join('') || '暂无反馈';
+
+  // Auto-show admin tab for admin
+  const navItems = document.querySelectorAll('.nav-item');
+  if (navItems.length === 5) {
+    // Add admin tab
+    const nav = document.querySelector('.nav');
+    if (!document.getElementById('nav-admin')) {
+      const adminNav = document.createElement('div');
+      adminNav.className = 'nav-item'; adminNav.id = 'nav-admin';
+      adminNav.innerHTML = '<span class="icon">📊</span>管理';
+      adminNav.onclick = () => switchPage('admin');
+      nav.appendChild(adminNav);
+    }
+    // Show admin page
+    const adminPage = document.getElementById('page-admin');
+    if (adminPage) adminPage.style.display = 'block';
+  }
+}
+
+// ═══ UTILS ═══
+function toast(msg) {
+  const el = document.createElement('div'); el.className='toast'; el.textContent=msg;
+  document.body.appendChild(el);
+  setTimeout(()=>el.remove(), 2000);
+}
+
+document.getElementById('codeInput').addEventListener('keydown', e => { if (e.key==='Enter') submitCode(); });
+</script>
+</body>
+</html>
